@@ -67,10 +67,37 @@ app.post('/api/candidate', ({ body }, res) => { // HTTP request method post() to
     });
 });
 
+// Get all candidates and their party affiliation
+app.get('/api/candidates', (req, res) => {
+    const sql = `SELECT candidates.*, parties.name 
+                  AS party_name 
+                  FROM candidates 
+                  LEFT JOIN parties 
+                  ON candidates.party_id = parties.id`;
+    // The SQL statement SELECT * FROM candidates is assigned to the sql variable.
+    // Instead of logging the error, we'll send a status code of 500 and place the error message within a JSON object. 
+    // This will all be handled within the error-handling conditional. The 500 status code indicates a server error—
 
-// Get a single candidate
+    db.query(sql, (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({ // If there was no error, then err is null and the response is sent back using the following statement:
+            message: 'success',
+            data: rows
+        });
+    });
+});
+
+// Get single candidate with party affiliation
 app.get('/api/candidate/:id', (req, res) => { // the endpoint has a route parameter that will hold the value of the id to specify which candidate we'll select from the database.
-    const sql = `SELECT * FROM candidates WHERE id = ?`;
+    const sql = `SELECT candidates.*, parties.name 
+                 AS party_name 
+                 FROM candidates 
+                 LEFT JOIN parties 
+                 ON candidates.party_id = parties.id 
+                 WHERE candidates.id = ?`;
     const params = [req.params.id]; // we'll assign the captured value populated in the req.params object with the key id to params
 
     db.query(sql, params, (err, row) => {
@@ -85,23 +112,87 @@ app.get('/api/candidate/:id', (req, res) => { // the endpoint has a route parame
     });
 });
 
-// Get all candidates
-app.get('/api/candidates', (req, res) => {
-    const sql = `SELECT * FROM candidates`; // The SQL statement SELECT * FROM candidates is assigned to the sql variable.
-    // Instead of logging the error, we'll send a status code of 500 and place the error message within a JSON object. 
-    // This will all be handled within the error-handling conditional. The 500 status code indicates a server error—
+// Update a candidate's party
+app.put('/api/candidate/:id', (req, res) => {
+
+    const errors = inputCheck(req.body, 'party_id'); // This now forces any PUT request to /api/candidate/:id to include a party_id property.
+
+    if (errors) { // 
+        res.status(400).json({ erro: errors });
+        return;
+    }
+    const sql = `UPDATE candidates SET party_id = ? 
+                 WHERE id = ?`;
+    const params = [req.body.party_id, req.params.id];
+    db.query(sql, params, (err, result) => {
+        if (err) {
+            res.status(400).json({ error: err.message });
+            // check if a record was found
+        } else if (!result.affectedRows) {
+            res.json({
+                message: 'Candidate not found'
+            });
+        } else {
+            res.json({
+                message: 'success',
+                data: req.body,
+                changes: result.affectedRows
+            });
+        }
+    });
+});
+
+// get all parties
+app.get('/api/parties', (req, res) => {
+    const sql = `SELECT * FROM parties`;
     db.query(sql, (err, rows) => {
-        if (err) { // 
+        if (err) {
             res.status(500).json({ error: err.message });
             return;
         }
-        res.json({ // If there was no error, then err is null and the response is sent back using the following statement:
+        res.json({
             message: 'success',
             data: rows
         });
     });
 });
 
+// get a party by id
+app.get('/api/party/:id', (req, res) => {
+    const sql = `SELECT * FROM parties WHERE id = ?`;
+    const params = [req.params.id];
+    db.query(sql, params, (err, row) => {
+        if (err) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+        res.json({
+            message: 'success',
+            data: row
+        });
+    });
+});
+
+app.delete('/api/party/:id', (req, res) => {
+    const sql = `DELETE FROM parties WHERE id = ?`;
+    const params = [req.params.id];
+    db.query(sql, params, (err, result) => {
+        if (err) {
+            res.status(400).json({ error: res.message });
+            // checks if anything was deleted
+        } else if (!result.affectedRows) {
+            res.json({
+                message: 'Party not found'
+            });
+        } else {
+            res.json({
+                message: 'deleted',
+                changes: result.affectedRows,
+                id: req.params.id
+            });
+        }
+    });
+});
 
 // Default response for any other request (Not Found)
 // this is a catchall route and will override all other. so it must be the last route
