@@ -1,6 +1,6 @@
 DROP TABLE IF EXISTS candidates; -- This will drop/delete the tables every time you run the schema.sql file, ensuring that you start with a clean slate.
 DROP TABLE IF EXISTS parties; -- , the candidates table must be dropped before the parties table due to the foreign key constraint that requires the parties table to exist.
-
+DROP TABLE IF EXISTS voters;
 
 CREATE TABLE parties ( -- define a parties table to make this db relational
   id INTEGER AUTO_INCREMENT PRIMARY KEY,
@@ -20,10 +20,23 @@ CREATE TABLE candidates ( -- Define the candidates table
   -- Because this constraint relies on the parties table, the parties table MUST be defined first before the candidates table.
 );
 
+CREATE TABLE voters ( -- define voters table
+  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(30) NOT NULL,
+  last_name VARCHAR(30) NOT NULL,
+  email VARCHAR(50) NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP -- date abd time voter registerd
+);
+
 -- use ALTER TABLE to alter a table
 -- ALTER TABLE candidates ADD COLUMN party_id INTEGER;
 
 -- The AS keyword lets you define an alias for your data, which is particularly useful when joining tables that might have overlapping field names.
 -- SELECT candidates.*, parties.name AS party_name
 
+-- SELECT first_name, last_name FROM voters;
+-- You can return only specific columns with a statement like this
+
 -- you can use dot notations to return only a certain column
+
+-- ORDER BY -> rows can be sorted on retrieval simply by including an ORDER BY clause.
